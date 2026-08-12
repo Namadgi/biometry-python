@@ -16,7 +16,14 @@ from .errors import _parse_api_error
 from .response import BiometryResponse
 from .types import FileUpload
 
-# Header names used for per-call options.
+# Header names used for per-call metadata options.
+#
+# Note: identity/session/trigger/document-provider/prefilled-video selection are
+# NOT headers in API v2 gateway operations — they are fields of the per-call
+# input objects (carried in the JSON ``request`` part) and the gateway strips
+# the corresponding headers. ``session_id``/``fullname``/``action_trigger``
+# remain here only for the non-gateway services (transactions, API keys), which
+# are unaffected by the v2 migration.
 _CALL_OPTION_HEADERS = {
     "session_id": "X-Session-ID",
     "fullname": "X-User-Fullname",
@@ -26,8 +33,6 @@ _CALL_OPTION_HEADERS = {
     "request_tags": "X-Request-Tags",
     "client_app": "X-Client-App",
     "client_version": "X-Client-Version",
-    "inhouse_docauth": "X-Inhouse-Docauth",
-    "inhouse_mrz": "X-Inhouse-MRZ",
 }
 
 
@@ -194,11 +199,12 @@ def _multipart(
     path: str,
     fields: Optional[Dict[str, str]] = None,
     files: List[FileUpload],
+    method: str = "POST",
     timeout: float = 30.0,
     _extra_headers: Optional[Dict[str, str]] = None,
     **kwargs: Any,
 ) -> Tuple[int, bytes, Dict[str, str]]:
-    """Send a multipart/form-data POST and return the raw response tuple."""
+    """Send a multipart/form-data request and return the raw response tuple."""
     extra: Dict[str, str] = {}
     if _extra_headers:
         extra.update(_extra_headers)
@@ -212,12 +218,40 @@ def _multipart(
         api_key=api_key,
         user_agent=user_agent,
         user_fullname=user_fullname,
-        method="POST",
+        method=method,
         path=path,
         body=body,
         extra_headers=extra,
         timeout=timeout,
     )
+
+
+def _bytes(
+    *,
+    base_url: str,
+    api_key: str,
+    user_agent: str,
+    user_fullname: str,
+    method: str,
+    path: str,
+    timeout: float = 30.0,
+    **kwargs: Any,
+) -> bytes:
+    """Send a request and return the raw response body bytes (for endpoints that
+    return a non-JSON payload such as an image's octet-stream)."""
+    extra: Dict[str, str] = {}
+    _apply_call_options(extra, kwargs)
+    _status, body, _headers = _request(
+        base_url=base_url,
+        api_key=api_key,
+        user_agent=user_agent,
+        user_fullname=user_fullname,
+        method=method,
+        path=path,
+        extra_headers=extra,
+        timeout=timeout,
+    )
+    return body
 
 
 def _multipart_raw(

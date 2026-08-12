@@ -10,29 +10,38 @@ T = TypeVar("T")
 
 
 @dataclass
-class BiometryResponse:
-    """Full API response envelope.
+class Decision:
+    """Scoring decision computed for a request when a scoring system applies."""
 
-    Used for endpoints like process-video and match-faces that return
-    scoring data alongside the result.
+    status: str = ""
+    score: Optional[float] = None
+    reasons: List[str] = field(default_factory=list)
+
+
+@dataclass
+class ResponseMeta:
+    """Response metadata attached to every API v2 response."""
+
+    request_id: str = ""
+    message: str = ""
+
+
+@dataclass
+class BiometryResponse:
+    """Full API v2 success envelope.
+
+    Used for verification endpoints (liveness, face-verify, voice-verify,
+    face-match, documents/check) that may carry a scoring decision alongside
+    the raw service data.
     """
 
     data: Any = None
-    scoring_result: Any = None
-    score: float = 0.0
-    decision_reasons: List[str] = field(default_factory=list)
-    message: str = ""
+    decision: Optional[Decision] = None
+    meta: ResponseMeta = field(default_factory=ResponseMeta)
     headers: Dict[str, str] = field(default_factory=dict)
 
-    # ------------------------------------------------------------------
-    # Convenience helpers
-    # ------------------------------------------------------------------
-
     def decode(self, cls: Type[T]) -> T:
-        """Deserialise the *data* field into a dataclass instance of *cls*.
-
-        The class must accept keyword arguments matching the JSON keys.
-        """
+        """Deserialise the *data* field into a dataclass instance of *cls*."""
         if self.data is None:
             raise ValueError("response contains no data")
         if isinstance(self.data, dict):
@@ -41,31 +50,31 @@ class BiometryResponse:
 
     @property
     def request_id(self) -> str:
-        """Return the ``X-Request-Id`` response header value."""
+        """Return the request ID, preferring the envelope meta then the header."""
+        if self.meta.request_id:
+            return self.meta.request_id
         return self.headers.get("X-Request-Id", "") or self.headers.get("x-request-id", "")
-
-    @property
-    def auto_enrolled(self) -> bool:
-        """Return True if auto face/voice enrollment was performed."""
-        val = self.headers.get("X-Auto-Enroll", "") or self.headers.get("x-auto-enroll", "")
-        return val.lower() == "true"
-
-    @property
-    def removed_services(self) -> bool:
-        """Return True if services were dropped due to missing consent."""
-        val = self.headers.get("X-Removed-Services", "") or self.headers.get("x-removed-services", "")
-        return val.lower() == "true"
 
     @classmethod
     def _from_json(cls, body: bytes, headers: Dict[str, str]) -> "BiometryResponse":
         """Build a response from raw JSON bytes and HTTP headers."""
         payload = json.loads(body) if body else {}
-        reasons = payload.get("decision_reasons") or []
+        decision_raw = payload.get("decision")
+        decision = None
+        if isinstance(decision_raw, dict):
+            decision = Decision(
+                status=decision_raw.get("status", ""),
+                score=decision_raw.get("score"),
+                reasons=list(decision_raw.get("reasons") or []),
+            )
+        meta_raw = payload.get("meta") or {}
+        meta = ResponseMeta(
+            request_id=meta_raw.get("request_id", ""),
+            message=meta_raw.get("message", ""),
+        )
         return cls(
             data=payload.get("data"),
-            scoring_result=payload.get("scoring_result"),
-            score=float(payload.get("score", 0)),
-            decision_reasons=list(reasons),
-            message=payload.get("message", ""),
+            decision=decision,
+            meta=meta,
             headers=headers,
         )

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any, Optional
 
 from .transport import _decode_envelope, _json
@@ -26,27 +25,27 @@ class SessionService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="POST",
-            path="/api-gateway/sessions/start",
+            path="/api-gateway/v2/sessions",
             timeout=self._c._timeout,
             **kwargs,
         )
         data = _decode_envelope(body)
-        return str(data) if data is not None else ""
+        if isinstance(data, dict):
+            return str(data.get("session_id", ""))
+        return ""
 
     def end(self, session_id: str, req: Optional[EndSessionRequest] = None, **kwargs: Any) -> None:
-        """Terminate a session by ID."""
+        """Terminate a session by ID. Pass *req* to run a SIM-swap check."""
         payload = None
-        if req is not None:
-            payload = {}
-            if req.phone_number:
-                payload["phone_number"] = req.phone_number
+        if req is not None and req.phone_number:
+            payload = {"phone_number": req.phone_number}
         _json(
             base_url=self._c._base_url,
             api_key=self._c._api_key,
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="POST",
-            path=f"/api-gateway/sessions/end/{session_id}",
+            path=f"/api-gateway/v2/sessions/{session_id}/end",
             payload=payload,
             timeout=self._c._timeout,
             **kwargs,
