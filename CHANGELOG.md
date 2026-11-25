@@ -6,6 +6,7 @@ Migrated the SDK to the **Biometry API v2** gateway (`/api-gateway/v2`). This is
 
 ### Breaking changes
 
+- **Python 3.10+.** Python 3.9 is end-of-life and no longer available on CI runners (`ubuntu-latest`); `requires-python` is now `>=3.10`.
 - **Identity model:** biometric calls now take an opaque `user_id` on their input objects, serialized into the API v2 JSON `request` part. The `user_fullname` constructor argument is removed (identity is per-call), and the gateway strips identity headers on v2.
 - **`client.video` removed**, replaced by **`client.verification`** with `liveness`, `face_verify`, and `voice_verify` (the v1 `process-video` split), each taking a typed input.
 - **`client.avf` → `client.deepfake`** (`submit` / `status`), targeting `/v2/deepfake/checks`; response type `AVFInferenceResponse`/`AVFStatusResponse` → `DeepfakeCheck`.

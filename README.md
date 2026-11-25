@@ -12,7 +12,7 @@ Python SDK for the [Biometry](https://biometrysolutions.com) identity verificati
 pip install biometry
 ```
 
-Requires Python 3.9+.
+Requires Python 3.10+.
 
 ## Quick Start
 
