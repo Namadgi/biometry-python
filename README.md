@@ -44,19 +44,22 @@ from biometry import (
 client = BiometryClient("YOUR_API_KEY")
 user_id = "user-123"
 
-# 1. Enroll the face. Enrollment needs the user's authorization and
-#    storage consent (see Consent below).
+# 1. Record the user's consent (collected in your app). Enrollment needs
+#    both authorization and storage consent; give() records both by default.
+client.consents.give(user_id)
+
+# 2. Enroll the face
 with open("face.jpg", "rb") as face:
     client.enrollment.face(EnrollFaceInput(user_id=user_id, face=face, file_name="face.jpg"))
 
-# 2. Start a session
+# 3. Start a session
 session_id = client.sessions.start()
 
-# 3. Check the identity document
+# 4. Check the identity document
 with open("passport.jpg", "rb") as doc:
     client.doc_auth.check(DocAuthInput(document=doc, file_name="passport.jpg", session_id=session_id))
 
-# 4. Liveness on a video of the user reading the challenge phrase
+# 5. Liveness on a video of the user reading the challenge phrase
 with open("selfie.mp4", "rb") as video:
     client.verification.liveness(LivenessInput(
         user_id=user_id,
@@ -66,14 +69,14 @@ with open("selfie.mp4", "rb") as video:
         session_id=session_id,
     ))
 
-# 5. Face verification on the same video
+# 6. Face verification on the same video
 client.verification.face_verify(VerifyInput(
     user_id=user_id,
     session_id=session_id,
     use_session_video=True,
 ))
 
-# 6. Face match: document photo against the session video
+# 7. Face match: document photo against the session video
 with open("passport.jpg", "rb") as passport:
     match = client.face_match.match(FaceMatchInput(
         user_id=user_id,
@@ -85,7 +88,7 @@ with open("passport.jpg", "rb") as passport:
 if match.decision:
     print("Face match decision:", match.decision.status)
 
-# 7. End the session
+# 8. End the session
 client.sessions.end(session_id)
 ```
 
@@ -93,7 +96,22 @@ In a session, face verification and face match must use the liveness media: the 
 
 ## Consent
 
-Face and voice enrollment and `images.upload()` need the user's **authorization** and **storage** consent, recorded with `PUT /api-gateway/v2/users/{user_id}/consents`.
+Face and voice enrollment need the user's **authorization** and **storage** consent; `images.upload()` needs authorization consent. Collect the user's agreement in your app, then record it:
+
+```python
+# Give both (the default; enrollment needs both). session_id is optional:
+# it shows the consent with that session in the Console.
+state = client.consents.give(user_id, session_id=session_id)
+
+# Withdraw storage consent only; authorization is left unchanged
+state = client.consents.revoke(user_id, authorization=False)
+
+# Read the current state (both False if the user never gave consent)
+state = client.consents.status(user_id)
+print(state.authorization, state.storage)
+```
+
+`give()` and `revoke()` return a `UserConsents` with the state after the change, are safe to repeat, and raise `ValueError` before sending a request if both `authorization` and `storage` are `False`.
 
 `consents.approve()` and `consents.my_approvals()` manage your project's custom consent templates. They do **not** unlock enrollment.
 
@@ -108,6 +126,7 @@ Face and voice enrollment and `images.upload()` need the user's **authorization*
 | Document Auth | `client.doc_auth` | `check()` | `/v2/documents/check` |
 | Deepfake | `client.deepfake` | `submit()`, `status()` | `/v2/deepfake/checks` |
 | Images | `client.images` | `upload()`, `get()` | `/v2/users/{user_id}/reference-image` |
+| Consents | `client.consents` | `give()`, `revoke()`, `status()` | `/v2/users/{user_id}/consents` |
 | Consents | `client.consents` | `approve()`, `my_approvals()` | `/v2/consents` (custom templates) |
 | Transactions | `client.transactions` | `list()`, `count()`, `get_by_session()`, `get_samples()`, `update_tags()`, `flag()` | `/api-transactions` (not part of v2) |
 | API Keys | `client.api_keys` | `mint()`, `revoke()`, `info()` | `/api-projects` (not part of v2) |
