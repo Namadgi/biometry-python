@@ -20,17 +20,64 @@ class EndSessionRequest:
 
 
 # ---------------------------------------------------------------------------
-# Video types
+# Verification types
 # ---------------------------------------------------------------------------
 
 @dataclass
-class ProcessVideoInput:
-    """Input for processing a biometric video."""
+class LivenessInput:
+    """Input for a liveness check (face liveness, active speaker, visual speech)."""
+    user_id: str = ""
     video: BinaryIO = None  # type: ignore[assignment]
-    video_name: str = ""
+    file_name: str = ""
     phrase: str = ""
     vocabulary: str = ""
     trigger: str = ""
+    session_id: str = ""
+    exclude_services: Optional[List[str]] = None
+
+
+@dataclass
+class VerifyInput:
+    """Input for face or voice verification against the user's enrolled template."""
+    user_id: str = ""
+    # Video (face) or audio/video (voice). May be None when use_session_video is True.
+    media: Optional[BinaryIO] = None
+    file_name: str = ""
+    phrase: str = ""
+    vocabulary: str = ""
+    session_id: str = ""
+    use_session_video: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Face-match types
+# ---------------------------------------------------------------------------
+
+@dataclass
+class FaceMatchInput:
+    """Input for a face-match request."""
+    user_id: str = ""
+    reference_image: BinaryIO = None  # type: ignore[assignment]
+    reference_name: str = ""
+    # Live capture. May be None when use_session_video is True.
+    video: Optional[BinaryIO] = None
+    video_name: str = ""
+    session_id: str = ""
+    use_session_video: bool = False
+
+
+# ---------------------------------------------------------------------------
+# DocAuth input
+# ---------------------------------------------------------------------------
+
+@dataclass
+class DocAuthInput:
+    """Input for a document authenticity check."""
+    document: BinaryIO = None  # type: ignore[assignment]
+    file_name: str = ""
+    session_id: str = ""
+    provider: str = ""  # "inhouse" | "idscan"
+    mrz_provider: str = ""  # "inhouse" | "idscan"
 
 
 # ---------------------------------------------------------------------------
@@ -40,59 +87,45 @@ class ProcessVideoInput:
 @dataclass
 class EnrollFaceInput:
     """Input for face enrollment."""
+    user_id: str = ""
     face: BinaryIO = None  # type: ignore[assignment]
     file_name: str = ""
     is_document: bool = False
 
 
 @dataclass
-class VoiceFile:
-    """A single voice recording for enrollment."""
-    file_name: str = ""
-    content: BinaryIO = None  # type: ignore[assignment]
-
-
-@dataclass
 class EnrollVoiceInput:
     """Input for voice enrollment."""
-    files: List[VoiceFile] = field(default_factory=list)
-    phrases: List[str] = field(default_factory=list)
+    user_id: str = ""
+    voice: BinaryIO = None  # type: ignore[assignment]
+    file_name: str = ""
+    phrase: str = ""
     vocabulary: str = ""
 
 
 # ---------------------------------------------------------------------------
-# Image types
+# Deepfake types
 # ---------------------------------------------------------------------------
 
 @dataclass
-class ImageUploadResponse:
-    """Returned after uploading an image."""
-    url: str = ""
+class DeepfakeInput:
+    """Input for submitting a deepfake check."""
+    user_id: str = ""
+    video: BinaryIO = None  # type: ignore[assignment]
+    file_name: str = ""
+    session_id: str = ""
 
 
 @dataclass
-class ImageGetResponse:
-    """Returned when retrieving an image."""
-    url: str = ""
-
-
-# ---------------------------------------------------------------------------
-# AVF types
-# ---------------------------------------------------------------------------
-
-@dataclass
-class AVFInferenceResponse:
-    """Returned when starting an AVF inference."""
-    request_id: str = ""
-    status: str = ""
-
-
-@dataclass
-class AVFStatusResponse:
-    """Returned when checking AVF inference status."""
-    request_id: str = ""
-    status: str = ""
-    result: Any = None
+class DeepfakeCheck:
+    """State of an asynchronous deepfake check."""
+    id: str = ""
+    status: str = ""  # pending | processing | completed | failed
+    score: Optional[float] = None
+    prediction: Optional[str] = None
+    message: Optional[str] = None
+    created_at: Optional[int] = None  # unix seconds
+    completed_at: Optional[int] = None  # unix seconds
 
 
 # ---------------------------------------------------------------------------

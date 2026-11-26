@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/biometry)](https://pypi.org/project/biometry/)
 
-Python SDK for the [Biometry](https://biometrysolutions.com) platform APIs. Zero external dependencies -- uses only the Python standard library.
+Python SDK for the [Biometry](https://biometrysolutions.com) identity verification platform. It calls the Biometry API v2 (`/api-gateway/v2`). Zero external dependencies: it uses only the Python standard library.
 
 ## Installation
 
@@ -12,166 +12,170 @@ Python SDK for the [Biometry](https://biometrysolutions.com) platform APIs. Zero
 pip install biometry
 ```
 
+Requires Python 3.10+.
+
 ## Quick Start
 
 ```python
-import biometry
+from biometry import BiometryClient
 
-client = biometry.BiometryClient(
-    "your-api-key",
-    user_fullname="John Doe",
-)
+client = BiometryClient("YOUR_API_KEY")
 
 session_id = client.sessions.start()
 print("Session started:", session_id)
 ```
 
+Every biometric call takes a `user_id`: your own opaque, stable key for the end user (not their name or email).
+
 ## Full Verification Flow
 
-A typical identity verification combines session management, consent, document authentication, face enrollment, video processing, and face matching:
+Enroll the user's face, then verify them in a session: liveness on a video, face verification on the same video, and a face match against their document.
 
 ```python
-import biometry
-
-client = biometry.BiometryClient(
-    "your-api-key",
-    user_fullname="John Doe",
+from biometry import (
+    BiometryClient,
+    DocAuthInput,
+    EnrollFaceInput,
+    FaceMatchInput,
+    LivenessInput,
+    VerifyInput,
 )
 
-# 1. Start a biometric session
+client = BiometryClient("YOUR_API_KEY")
+user_id = "user-123"
+
+# 1. Enroll the face. Enrollment needs the user's authorization and
+#    storage consent (see Consent below).
+with open("face.jpg", "rb") as face:
+    client.enrollment.face(EnrollFaceInput(user_id=user_id, face=face, file_name="face.jpg"))
+
+# 2. Start a session
 session_id = client.sessions.start()
 
-# 2. Approve consent for the user
-client.consents.approve(
-    consent_id="your-consent-id",
-    user_id="user-123",
-    session_id=session_id,
-)
-
-# 3. Authenticate an identity document
+# 3. Check the identity document
 with open("passport.jpg", "rb") as doc:
-    doc_resp = client.doc_auth.check(
-        doc, "passport.jpg",
-        session_id=session_id,
-    )
-    doc_info = doc_resp.decode(biometry.DocAuthInfo)
-    print(f"Document: {doc_info.document_type}, Country: {doc_info.country_code}")
+    client.doc_auth.check(DocAuthInput(document=doc, file_name="passport.jpg", session_id=session_id))
 
-# 4. Enroll the face from the document photo
-with open("portrait.jpg", "rb") as face:
-    client.enrollment.face(
-        biometry.EnrollFaceInput(face=face, file_name="portrait.jpg"),
+# 4. Liveness on a video of the user reading the challenge phrase
+with open("selfie.mp4", "rb") as video:
+    client.verification.liveness(LivenessInput(
+        user_id=user_id,
+        video=video,
+        file_name="selfie.mp4",
+        phrase="one two three four five six seven",
         session_id=session_id,
-    )
+    ))
 
-# 5. Process a biometric video
-with open("video.mp4", "rb") as video:
-    video_resp = client.video.process(
-        biometry.ProcessVideoInput(
-            video=video,
-            video_name="video.mp4",
-            phrase="one two three four five",
-        ),
-        session_id=session_id,
-    )
-    print(f"Video score: {video_resp.score}")
+# 5. Face verification on the same video
+client.verification.face_verify(VerifyInput(
+    user_id=user_id,
+    session_id=session_id,
+    use_session_video=True,
+))
 
-# 6. Match the enrolled face against the session video
-with open("portrait.jpg", "rb") as face:
-    match_resp = client.face_match.match_with_session_video(
-        image=face,
-        image_name="portrait.jpg",
+# 6. Face match: document photo against the session video
+with open("passport.jpg", "rb") as passport:
+    match = client.face_match.match(FaceMatchInput(
+        user_id=user_id,
+        reference_image=passport,
+        reference_name="passport.jpg",
         session_id=session_id,
-    )
-    print(f"Match score: {match_resp.score}")
+        use_session_video=True,
+    ))
+if match.decision:
+    print("Face match decision:", match.decision.status)
 
 # 7. End the session
 client.sessions.end(session_id)
 ```
 
+In a session, face verification and face match must use the liveness media: the same file, or `use_session_video`.
+
+## Consent
+
+Face and voice enrollment and `images.upload()` need the user's **authorization** and **storage** consent, recorded with `PUT /api-gateway/v2/users/{user_id}/consents`.
+
+`consents.approve()` and `consents.my_approvals()` manage your project's custom consent templates. They do **not** unlock enrollment.
+
 ## Services
 
-| Service | Attribute | Methods |
-|---------|-----------|---------|
-| Sessions | `client.sessions` | `start()`, `end()` |
-| Video | `client.video` | `process()` |
-| Enrollment | `client.enrollment` | `face()`, `voice()` |
-| Face Match | `client.face_match` | `match()`, `match_with_session_video()` |
-| Doc Auth | `client.doc_auth` | `check()` |
-| Consents | `client.consents` | `approve()`, `my_approvals()` |
-| Images | `client.images` | `upload()`, `get()` |
-| AVF | `client.avf` | `start_inference()`, `check_status()` |
-| Transactions | `client.transactions` | `list()`, `count()`, `get_by_session()`, `get_samples()`, `update_tags()`, `flag()` |
-| API Keys | `client.api_keys` | `mint()`, `revoke()`, `info()` |
+| Service | Accessor | Methods | API v2 |
+|---------|----------|---------|--------|
+| Sessions | `client.sessions` | `start()`, `end()` | `/v2/sessions` |
+| Verification | `client.verification` | `liveness()`, `face_verify()`, `voice_verify()` | `/v2/liveness`, `/v2/face-verify`, `/v2/voice-verify` |
+| Enrollment | `client.enrollment` | `face()`, `voice()` | `/v2/enrollments/face`, `/v2/enrollments/voice` |
+| Face Match | `client.face_match` | `match()` | `/v2/face-match` |
+| Document Auth | `client.doc_auth` | `check()` | `/v2/documents/check` |
+| Deepfake | `client.deepfake` | `submit()`, `status()` | `/v2/deepfake/checks` |
+| Images | `client.images` | `upload()`, `get()` | `/v2/users/{user_id}/reference-image` |
+| Consents | `client.consents` | `approve()`, `my_approvals()` | `/v2/consents` (custom templates) |
+| Transactions | `client.transactions` | `list()`, `count()`, `get_by_session()`, `get_samples()`, `update_tags()`, `flag()` | `/api-transactions` (not part of v2) |
+| API Keys | `client.api_keys` | `mint()`, `revoke()`, `info()` | `/api-projects` (not part of v2) |
+
+`LivenessInput.exclude_services` skips checks by name; use the `VerificationServices` constants (`FACE_LIVENESS`, `ACTIVE_SPEAKER`, `VISUAL_SPEECH`, ...).
 
 ## Per-Request Options
 
-Every service method accepts keyword arguments that are sent as HTTP headers:
+Every service method accepts keyword arguments that map to request metadata headers:
 
 ```python
-resp = client.video.process(
+resp = client.verification.liveness(
     input,
-    session_id="sess-abc",
-    fullname="Jane Doe",
-    device_info='{"model": "iPhone 15", "os": "iOS 18"}',
-    geo_location='{"lat": -35.28, "lng": 149.13, "country": "AU"}',
+    device_info='{"model": "Pixel 8"}',
+    geo_location='{"lat": -35.28, "lng": 149.13}',
     request_tags="onboarding,mobile",
     client_app="my-app",
     client_version="2.1.0",
-    inhouse_docauth=True,
-    inhouse_mrz=True,
 )
 ```
 
 | Keyword | Header | Description |
 |---------|--------|-------------|
-| `session_id` | `X-Session-ID` | Attach the request to a session |
-| `fullname` | `X-User-Fullname` | Override the user fullname for this request |
-| `action_trigger` | `X-Action-Trigger` | Custom action trigger label |
-| `device_info` | `X-Device-Info` | JSON-encoded device metadata |
-| `geo_location` | `X-Geo-Location` | JSON-encoded lat/lng/country/city |
-| `request_tags` | `X-Request-Tags` | Comma-separated labels |
+| `device_info` | `X-Device-Info` | JSON device metadata |
+| `geo_location` | `X-Geo-Location` | JSON geographic location |
+| `request_tags` | `X-Request-Tags` | Comma-separated request labels |
 | `client_app` | `X-Client-App` | Calling application identifier |
 | `client_version` | `X-Client-Version` | Calling application version |
-| `inhouse_docauth` | `X-Inhouse-Docauth` | Use in-house document authentication (`True`/`False`) |
-| `inhouse_mrz` | `X-Inhouse-MRZ` | Enable MRZ validation (`True`/`False`) |
 
-## Response Headers
+User, session and trigger are fields on the input objects, not headers.
 
-The `BiometryResponse` object exposes useful response headers as properties:
+## Responses
+
+Calls that return `BiometryResponse` carry the API v2 envelope `{ data, decision, meta }`:
 
 ```python
-resp = client.video.process(input, session_id=session_id)
+resp = client.verification.liveness(input)
 
-resp.request_id        # X-Request-Id -- unique identifier for the request
-resp.auto_enrolled     # X-Auto-Enroll -- True if auto face/voice enrollment was performed
-resp.removed_services  # X-Removed-Services -- True if services were dropped due to missing consent
+resp.decision     # Decision(status, score, reasons); None when no scoring system applies
+resp.data         # endpoint-specific payload
+resp.request_id   # request trace ID
 ```
 
 ## Error Handling
 
-All API errors are raised as `BiometryAPIError` with the HTTP status code and error message:
+API errors raise `BiometryAPIError`, with the HTTP status, the v2 error code and the message:
 
 ```python
-from biometry import BiometryAPIError, is_not_found, is_forbidden, is_unauthorized
+from biometry import BiometryAPIError, is_forbidden, is_not_found, is_unauthorized
 
 try:
-    session_id = client.sessions.start()
+    client.verification.liveness(input)
 except BiometryAPIError as e:
-    print(f"HTTP {e.status_code}: {e.message}")
-
+    print(e.status_code, e.code, e.message)
+    if is_unauthorized(e):
+        ...  # 401 -- bad or expired API key
+    if is_forbidden(e):
+        ...  # 403 -- insufficient permissions
     if is_not_found(e):
-        print("Resource not found")
-    elif is_forbidden(e):
-        print("Access denied")
-    elif is_unauthorized(e):
-        print("Invalid API key")
+        ...  # 404 -- resource not found
 ```
+
+See [CHANGELOG.md](CHANGELOG.md) for the v1 → v2 migration notes.
 
 ## Documentation
 
-Full API reference and guides: [docs.biometrysolutions.com/sdks/python/](https://docs.biometrysolutions.com/sdks/python/)
+Full API reference and integration guides: **[docs.biometrysolutions.com/sdks/python](https://docs.biometrysolutions.com/sdks/python/)**.
 
 ## License
 
-[MIT](LICENSE) -- Copyright 2026 Namadgi Pty Ltd
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

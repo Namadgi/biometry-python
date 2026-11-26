@@ -64,44 +64,27 @@ class TestSessionService(unittest.TestCase):
         _Handler._requests.clear()
 
     def _client(self) -> BiometryClient:
-        return BiometryClient("test-api-key", base_url=self.base_url, user_fullname="Test User")
+        return BiometryClient("test-api-key", base_url=self.base_url)
 
     def test_start(self) -> None:
         _Handler._responses.append({
             "status": 200,
-            "body": {"data": "session-abc"},
+            "body": {"data": {"session_id": "session-abc"}, "meta": {}},
         })
-        client = self._client()
-        sid = client.sessions.start()
+        sid = self._client().sessions.start()
         self.assertEqual(sid, "session-abc")
         req = _Handler._requests[0]
         self.assertEqual(req["method"], "POST")
-        self.assertTrue(req["path"].endswith("/sessions/start"))
+        self.assertTrue(req["path"].endswith("/api-gateway/v2/sessions"))
 
     def test_end(self) -> None:
-        _Handler._responses.append({
-            "status": 200,
-            "body": {"message": "ok"},
-        })
-        client = self._client()
-        client.sessions.end("sess-123", EndSessionRequest(phone_number="+1234567890"))
+        _Handler._responses.append({"status": 200, "body": {"meta": {}}})
+        self._client().sessions.end("sess-123", EndSessionRequest(phone_number="+1234567890"))
         req = _Handler._requests[0]
         self.assertEqual(req["method"], "POST")
-        self.assertTrue(req["path"].endswith("/sessions/end/sess-123"))
+        self.assertTrue(req["path"].endswith("/api-gateway/v2/sessions/sess-123/end"))
         body = json.loads(req["body"])
         self.assertEqual(body["phone_number"], "+1234567890")
-
-    def test_start_with_call_options(self) -> None:
-        _Handler._responses.append({
-            "status": 200,
-            "body": {"data": "session-xyz"},
-        })
-        client = self._client()
-        sid = client.sessions.start(fullname="Override", session_id="parent-sess")
-        self.assertEqual(sid, "session-xyz")
-        req = _Handler._requests[0]
-        self.assertEqual(req["headers"].get("X-User-Fullname"), "Override")
-        self.assertEqual(req["headers"].get("X-Session-Id"), "parent-sess")
 
 
 if __name__ == "__main__":

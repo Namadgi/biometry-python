@@ -1,34 +1,39 @@
-"""Biometry Python SDK — zero-dependency client for the Biometry platform APIs."""
+"""Biometry Python SDK — zero-dependency client for the Biometry platform APIs (API v2)."""
 
 from .client import BiometryClient, DEFAULT_BASE_URL, DEFAULT_TIMEOUT
 from .errors import BiometryAPIError, is_forbidden, is_not_found, is_unauthorized
-from .response import BiometryResponse
+from .response import BiometryResponse, Decision, ResponseMeta
+from .v2 import VerificationServices, request_field
 from .types import (
     APIKeyInfo,
-    AVFInferenceResponse,
-    AVFStatusResponse,
     ConsentApproval,
     DecisionChange,
+    DeepfakeCheck,
+    DeepfakeInput,
     DocAuthInfo,
+    DocAuthInput,
     EndSessionRequest,
     EnrollFaceInput,
     EnrollVoiceInput,
+    FaceMatchInput,
     FileUpload,
     Geo,
-    ImageGetResponse,
-    ImageUploadResponse,
+    LivenessInput,
     MRZValidation,
-    ProcessVideoInput,
     Transaction,
     TransactionDevice,
     TransactionListRequest,
-    VoiceFile,
+    VerifyInput,
 )
 
 __all__ = [
     "BiometryClient",
     "BiometryAPIError",
     "BiometryResponse",
+    "Decision",
+    "ResponseMeta",
+    "VerificationServices",
+    "request_field",
     "DEFAULT_BASE_URL",
     "DEFAULT_TIMEOUT",
     "is_not_found",
@@ -36,24 +41,24 @@ __all__ = [
     "is_unauthorized",
     # Types
     "APIKeyInfo",
-    "AVFInferenceResponse",
-    "AVFStatusResponse",
     "ConsentApproval",
     "DecisionChange",
+    "DeepfakeCheck",
+    "DeepfakeInput",
     "DocAuthInfo",
+    "DocAuthInput",
     "EndSessionRequest",
     "EnrollFaceInput",
     "EnrollVoiceInput",
+    "FaceMatchInput",
     "FileUpload",
     "Geo",
-    "ImageGetResponse",
-    "ImageUploadResponse",
+    "LivenessInput",
     "MRZValidation",
-    "ProcessVideoInput",
     "Transaction",
     "TransactionDevice",
     "TransactionListRequest",
-    "VoiceFile",
+    "VerifyInput",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
