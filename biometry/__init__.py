@@ -7,6 +7,7 @@ from .v2 import VerificationServices, request_field
 from .types import (
     APIKeyInfo,
     ConsentApproval,
+    UserConsents,
     DecisionChange,
     DeepfakeCheck,
     DeepfakeInput,
@@ -42,6 +43,7 @@ __all__ = [
     # Types
     "APIKeyInfo",
     "ConsentApproval",
+    "UserConsents",
     "DecisionChange",
     "DeepfakeCheck",
     "DeepfakeInput",

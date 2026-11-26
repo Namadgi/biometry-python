@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (BM-532)
+
+### Added
+
+- **`consents.give` / `consents.revoke` / `consents.status`** record and read the user's authorization and storage consent (`PUT`/`GET /v2/users/{user_id}/consents`), which face and voice enrollment require. Keyword arguments `authorization` and `storage` (both default `True`) select the consents to change, and `session_id` optionally links the change to a session; selecting neither raises `ValueError` before any request. All three return `UserConsents`.
+
+### Changed
+
+- `consents.approve` / `my_approvals` are documented as custom consent template calls: they do not unlock enrollment.
+- README: the verification flow records consent before enrolling.
+
 ## 0.2.0 (BM-338)
 
 Migrated the SDK to the **Biometry API v2** gateway (`/api-gateway/v2`). This is a breaking release.

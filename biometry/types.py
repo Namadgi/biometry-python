@@ -133,6 +133,14 @@ class DeepfakeCheck:
 # ---------------------------------------------------------------------------
 
 @dataclass
+class UserConsents:
+    """The user's authorization and storage consent."""
+    user_id: str = ""
+    authorization: bool = False
+    storage: bool = False
+
+
+@dataclass
 class ConsentApproval:
     """A user's consent approval."""
     id: str = ""
