@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from urllib.parse import quote
 
-from .transport import _apply_call_options, _build_base_headers, _decode_envelope, _json, _request
+from .transport import _apply_call_options, _build_base_headers, _decode_envelope, _json, _request, _seg
 from .types import ConsentApproval, UserConsents
 
 if TYPE_CHECKING:
@@ -99,7 +98,7 @@ class ConsentService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method=method,
-            path=f"/api-gateway/v2/users/{quote(user_id, safe='')}/consents",
+            path=f"/api-gateway/v2/users/{_seg(user_id)}/consents",
             payload=payload,
             timeout=self._c._timeout,
             **kwargs,
@@ -128,7 +127,7 @@ class ConsentService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="POST",
-            path=f"/api-gateway/v2/consents/{consent_id}/approve/{user_id}",
+            path=f"/api-gateway/v2/consents/{_seg(consent_id)}/approve/{_seg(user_id)}",
             extra_headers=headers,
             timeout=self._c._timeout,
         )
@@ -146,7 +145,7 @@ class ConsentService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="GET",
-            path=f"/api-gateway/v2/consents/my-approvals/{user_id}",
+            path=f"/api-gateway/v2/consents/my-approvals/{_seg(user_id)}",
             extra_headers=headers,
             timeout=self._c._timeout,
         )

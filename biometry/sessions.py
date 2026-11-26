@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from .transport import _decode_envelope, _json
+from .transport import _decode_envelope, _json, _seg
 from .types import EndSessionRequest
 
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ class SessionService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="POST",
-            path=f"/api-gateway/v2/sessions/{session_id}/end",
+            path=f"/api-gateway/v2/sessions/{_seg(session_id)}/end",
             payload=payload,
             timeout=self._c._timeout,
             **kwargs,

@@ -62,7 +62,9 @@ class VerificationService:
             use_session_video=input.use_session_video,
         )
         files = []
-        if input.media is not None:
+        # With use_session_video the gateway reuses the session's liveness video
+        # and ignores an uploaded one, so don't upload it.
+        if input.media is not None and not input.use_session_video:
             files = [FileUpload(field_name=file_field, file_name=input.file_name or "capture", content=input.media)]
         return _multipart_raw(
             base_url=self._c._base_url,

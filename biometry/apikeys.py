@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .transport import (
+    _seg,
     _apply_call_options,
     _build_base_headers,
     _decode_envelope,
@@ -55,7 +56,7 @@ class APIKeyService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="DELETE",
-            path=f"/api-projects/public/apikeys/{key_id}",
+            path=f"/api-projects/public/apikeys/{_seg(key_id)}",
             extra_headers=headers,
             timeout=self._c._timeout,
         )

@@ -24,7 +24,9 @@ class FaceMatchService:
         files = [
             FileUpload(field_name="reference_image", file_name=input.reference_name, content=input.reference_image),
         ]
-        if input.video is not None:
+        # With use_session_video the gateway reuses the session's liveness video
+        # and ignores an uploaded one, so don't upload it.
+        if input.video is not None and not input.use_session_video:
             files.append(
                 FileUpload(field_name="video", file_name=input.video_name or "capture", content=input.video)
             )

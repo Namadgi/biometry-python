@@ -10,6 +10,7 @@ import json
 import uuid
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 from urllib.error import HTTPError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from .errors import _parse_api_error
@@ -34,6 +35,12 @@ _CALL_OPTION_HEADERS = {
     "client_app": "X-Client-App",
     "client_version": "X-Client-Version",
 }
+
+
+def _seg(value: str) -> str:
+    """Percent-encode one path segment, so a value containing ``/``, ``?`` or
+    ``#`` cannot change the endpoint."""
+    return quote(str(value), safe="")
 
 
 def _apply_call_options(headers: Dict[str, str], kwargs: Dict[str, Any]) -> None:
