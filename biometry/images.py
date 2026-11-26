@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, BinaryIO
 
-from .transport import _bytes, _multipart
+from .transport import _bytes, _multipart, _seg
 from .types import FileUpload
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class ImageService:
             api_key=self._c._api_key,
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
-            path=f"/api-gateway/v2/users/{user_id}/reference-image",
+            path=f"/api-gateway/v2/users/{_seg(user_id)}/reference-image",
             files=[FileUpload(field_name="image", file_name=file_name, content=image)],
             method="PUT",
             timeout=self._c._timeout,
@@ -42,7 +42,7 @@ class ImageService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="GET",
-            path=f"/api-gateway/v2/users/{user_id}/reference-image",
+            path=f"/api-gateway/v2/users/{_seg(user_id)}/reference-image",
             timeout=self._c._timeout,
             **kwargs,
         )

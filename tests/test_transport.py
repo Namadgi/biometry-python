@@ -7,7 +7,7 @@ import json
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
-from typing import Any, Dict, List
+from typing import Any, ClassVar, Dict, List
 
 from biometry import (
     BiometryAPIError,
@@ -31,8 +31,8 @@ from biometry.types import FileUpload
 
 
 class _Handler(BaseHTTPRequestHandler):
-    _responses: List[Dict[str, Any]] = []
-    _requests: List[Dict[str, Any]] = []
+    _responses: ClassVar[List[Dict[str, Any]]] = []
+    _requests: ClassVar[List[Dict[str, Any]]] = []
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         pass

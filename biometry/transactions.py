@@ -7,6 +7,7 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from .transport import (
+    _seg,
     _apply_call_options,
     _build_base_headers,
     _decode_envelope,
@@ -106,7 +107,7 @@ class TransactionService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="GET",
-            path=f"/api-transactions/transactions/sessions/{session_id}",
+            path=f"/api-transactions/transactions/sessions/{_seg(session_id)}",
             extra_headers=headers,
             timeout=self._c._timeout,
         )
@@ -128,7 +129,7 @@ class TransactionService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="GET",
-            path=f"/api-transactions/transactions/{id}/samples",
+            path=f"/api-transactions/transactions/{_seg(id)}/samples",
             extra_headers=headers,
             timeout=self._c._timeout,
         )
@@ -142,7 +143,7 @@ class TransactionService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="PUT",
-            path=f"/api-transactions/transactions/{id}/tags",
+            path=f"/api-transactions/transactions/{_seg(id)}/tags",
             payload={"tags": tags},
             timeout=self._c._timeout,
             **kwargs,
@@ -156,7 +157,7 @@ class TransactionService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="PUT",
-            path=f"/api-transactions/transactions/{id}/flag",
+            path=f"/api-transactions/transactions/{_seg(id)}/flag",
             payload={"flag": flag},
             timeout=self._c._timeout,
             **kwargs,

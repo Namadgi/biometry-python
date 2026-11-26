@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, Dict
 
-from .transport import _bytes, _multipart
+from .transport import _bytes, _multipart, _seg
 from .types import DeepfakeCheck, DeepfakeInput, FileUpload
 from .v2 import request_field
 
@@ -52,7 +52,7 @@ class DeepfakeService:
             user_agent=self._c._user_agent,
             user_fullname=self._c._user_fullname,
             method="GET",
-            path=f"/api-gateway/v2/deepfake/checks/{request_id}",
+            path=f"/api-gateway/v2/deepfake/checks/{_seg(request_id)}",
             timeout=self._c._timeout,
             **kwargs,
         )
